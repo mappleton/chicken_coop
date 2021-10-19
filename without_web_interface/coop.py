@@ -116,4 +116,4 @@ if __name__ == '__main__':
     scheduler.add_job(add_events, 'interval', hours=24, start_date='2021-09-26 00:10:00')
     log_events('Startup Check')
     while True:
-        time.sleep(60)
+        time.sleep(86400)
