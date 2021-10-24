@@ -86,28 +86,30 @@ def log_events(x):
 
 
 # Function to add the daily events to the scheduler
+def get_time(period):
+   try:
+      x = eval('astral.sun.'+period+'(city.observer, date=datetime.date.today(), tzinfo=city.timezone)')
+      logger.info('get_time had wifi')
+      return x
+   except:
+      if period == 'sunrise':
+         fixed_x = datetime.datetime.combine(datetime.datetime.today(),datetime.time(7,00))
+      elif period == 'dusk':
+         fixed_x = datetime.datetime.combine(datetime.datetime.today(),datetime.time(19,00))
+      logger.info('get_time DID NOT have wifi - using fixed times')
+      return fixed_x
+
+
+# Function to add the daily events to the scheduler
 def add_events():
-    # Needs wifi to get actual sunrise/sunset.  Opening tunnel 30 min after coop door
-    try:
-        sunrise = astral.sun.sunrise(city.observer, date=datetime.date.today(), tzinfo=city.timezone)
-        dusk = astral.sun.dusk(city.observer, date=datetime.date.today(), tzinfo=city.timezone)
-        tunnel_open_time = sunrise + datetime.timedelta(minutes=30)
-        scheduler.add_job(coop_open.door_run, 'date', run_date=sunrise)
-        scheduler.add_job(tunnel_open.door_run, 'date', run_date=tunnel_open_time)
-        scheduler.add_job(coop_close.door_run, 'date', run_date=dusk)
-        scheduler.add_job(tunnel_close.door_run, 'date', run_date=dusk)
-        log_events('add_events had wifi')
-
-
-    except:
-        fixeddawn = datetime.datetime.combine(datetime.datetime.today(),datetime.time(7,00))
-        fixeddusk = datetime.datetime.combine(datetime.datetime.today(),datetime.time(19,00))
-        fixedtunnel = fixeddawn + datetime.timedelta(minutes=60)
-        scheduler.add_job(coop_open.door_run, 'date', run_date=fixeddawn)
-        scheduler.add_job(tunnel_open.door_run, 'date', run_date=fixedtunnel)
-        scheduler.add_job(coop_close.door_run, 'date', run_date=fixeddusk)
-        scheduler.add_job(tunnel_close.door_run, 'date', run_date=fixeddusk)
-        log_events('add_events DID NOT have wifi')
+   sunrise = get_time('sunrise')
+   dusk = get_time('dusk')
+   tunnel_open_time = sunrise + datetime.timedelta(minutes=30)
+   scheduler.add_job(coop_open.door_run, 'date', run_date=sunrise, name='Coop Open')
+   scheduler.add_job(tunnel_open.door_run, 'date', run_date=tunnel_open_time, name='Tunnel Open')
+   scheduler.add_job(coop_close.door_run, 'date', run_date=dusk, name='Coop Close')
+   scheduler.add_job(tunnel_close.door_run, 'date', run_date=dusk, name='Tunnel Close')
+   log_events('add_events')
 
 if __name__ == '__main__':
     #call add_events to schedule once at boot
