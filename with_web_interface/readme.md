@@ -1,3 +1,1 @@
-Placeholder-
-
-Web interface will inclue video/images, log file, temp, control
+with_web_interface/coop.py controls two doors (coop & tunnel) based on sunrise and sunset. Actions are logged to coop.log  Also has web displaying Temp, Humidity, scheduled events, video stream from /videopi and buttons to manually close/open coop and tunnel, as well as turn the IR light for the camera and a coop light on/off.
