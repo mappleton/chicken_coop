@@ -40,6 +40,8 @@ scheduler.start()
 temp_sensor = Adafruit_DHT.DHT22
 city = astral.LocationInfo(name='Edmonds, WA', region='USA', timezone='US/Pacific', latitude=47.8107, longitude=-122.3774)
 door_in_use = 'no'
+fixed_sunrise = datetime.time(7,00)
+fixed_dusk = datetime.time(19,00)
 
 # app = Flask(__name__)
 app = Flask(__name__, static_url_path='/')
@@ -139,16 +141,23 @@ def log_events(x):
    for job in jobs:
       logger.info('scheduled - '+str(job))
 
+
 def get_time(period):
+   global fixed_sunrise 
+   global fixed_dusk
    try:
       x = eval('astral.sun.'+period+'(city.observer, date=datetime.date.today(), tzinfo=city.timezone)')
+      if period == 'sunrise':
+         fixed_sunrise = x.time()
+      elif period == 'dusk':
+         fixed_dusk = x.time()
       logger.info('get_time had wifi')
       return x
    except:
       if period == 'sunrise':
-         fixed_x = datetime.datetime.combine(datetime.datetime.today(),datetime.time(7,00))
+         fixed_x = datetime.datetime.combine(datetime.datetime.today(),fixed_sunrise)
       elif period == 'dusk':
-         fixed_x = datetime.datetime.combine(datetime.datetime.today(),datetime.time(19,00))
+         fixed_x = datetime.datetime.combine(datetime.datetime.today(),fixed_dusk)
       logger.info('get_time DID NOT have wifi - using fixed times')
       return fixed_x
 
@@ -185,7 +194,9 @@ def main():
       'hum'	: round(humidity,1),
       'sunrise' : sunrise,
       'dusk' : dusk,
-      'jobs' : jobs
+      'jobs' : jobs,
+      'fixed_sunrise' : fixed_sunrise.strftime('%H:%M'),
+      'fixed_dusk' : fixed_dusk.strftime('%H:%M')
       }
    # Pass the template data into the template main.html and return it to the user
    return render_template('main.html', **templateData)
