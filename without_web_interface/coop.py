@@ -31,7 +31,8 @@ scheduler.start()
 
 # Define the location to determine event times
 city = astral.LocationInfo(name='Edmonds, WA', region='USA', timezone='US/Pacific', latitude=47.8107, longitude=-122.3774)
-
+fixed_sunrise = datetime.time(7,00)
+fixed_dusk = datetime.time(19,00)
 
 GPIO.setmode(GPIO.BCM)
 
@@ -87,15 +88,21 @@ def log_events(x):
 
 # Function to add the daily events to the scheduler
 def get_time(period):
+   global fixed_sunrise 
+   global fixed_dusk
    try:
       x = eval('astral.sun.'+period+'(city.observer, date=datetime.date.today(), tzinfo=city.timezone)')
+      if period == 'sunrise':
+         fixed_sunrise = x.time()
+      elif period == 'dusk':
+         fixed_dusk = x.time()
       logger.info('get_time had wifi')
       return x
    except:
       if period == 'sunrise':
-         fixed_x = datetime.datetime.combine(datetime.datetime.today(),datetime.time(7,00))
+         fixed_x = datetime.datetime.combine(datetime.datetime.today(),fixed_sunrise)
       elif period == 'dusk':
-         fixed_x = datetime.datetime.combine(datetime.datetime.today(),datetime.time(19,00))
+         fixed_x = datetime.datetime.combine(datetime.datetime.today(),fixed_dusk)
       logger.info('get_time DID NOT have wifi - using fixed times')
       return fixed_x
 
