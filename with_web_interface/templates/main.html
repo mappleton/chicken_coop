@@ -57,6 +57,7 @@
       {% for job in jobs %}
          <h3>Task: {{ job.name }} will run next at: {{ ((job.next_run_time).strftime('%m-%d-%y %H:%M')) }}</h3>
       {% endfor %}
+      <h3>Backup times: Sunrise: {{ fixed_sunrise }} | Dusk: {{ fixed_dusk }}</h3>
    </div> 
 </div>
  <div class="parent">
