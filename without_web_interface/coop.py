@@ -10,8 +10,8 @@ Date: September 26, 2021
 import RPi.GPIO as GPIO
 import time
 import astral
-import datetime
 from astral.sun import sun
+import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 import logging.handlers as handlers
@@ -36,13 +36,22 @@ fixed_dusk = datetime.time(19,00)
 
 GPIO.setmode(GPIO.BCM)
 
-# Create a dictionary called pins to store the pin number, name, and pin state
+# Create a dictionary called pins to store the gpio # and state
 pins = {
    23 : {'name' : 'Door Close', 'state' : GPIO.HIGH},
    24 : {'name' : 'Door Open', 'state' : GPIO.HIGH},
    5 : {'name' : 'Tunnel Open', 'state' : GPIO.HIGH},
-   6 : {'name' : 'Tunnel Close', 'state' : GPIO.HIGH}
+   6 : {'name' : 'Tunnel Close', 'state' : GPIO.HIGH},
+   25: {'name': 'Blue', 'state': GPIO.HIGH}
    }
+
+'''
+UNUSED GPIO
+GPIO 26 (Grey wire.  Bad pin?)
+GPIO 19 (Purple wire.  Bad pin?)
+GPIO 13 (Brn/white)
+'''
+
 
 # Set each pin as an output and make it low
 for pin in pins:
@@ -67,14 +76,33 @@ class Door:
         logger.info(str(self.door)+'-'+str(self.direction))
 
 
+#class for On/Off Functions ie: Coop Light
+class OnOff:
 
- 
-# creating object of the class
+    # parameterized constructor
+    def __init__(self, item, onoff, gpio_pin):
+        self.item = item
+        self.onoff = onoff
+        self.gpio_pin = gpio_pin
+
+    def onoff_run(self):
+        if self.onoff == 'on':
+            GPIO.output(self.gpio_pin, GPIO.LOW)
+        elif self.onoff == 'off':
+            GPIO.output(self.gpio_pin, GPIO.HIGH)
+        logger.info(str(self.item) + '-' + str(self.onoff))
+
+
+# creating objects of the classes
 # Door('which door', 'open/close', duration in seconds, pin #)
+# OnOff('which item', 'on' or 'off', pin #)
 coop_open = Door('coop', 'open', 35, 24)
 coop_close = Door('coop', 'close', 50, 23) 
 tunnel_open = Door('tunnel', 'open', 40, 5)
 tunnel_close = Door('tunnel', 'close', 40, 6)
+coop_light_on = OnOff('coop light', 'on', 25)
+coop_light_off = OnOff('coop light', 'off', 25)
+
 
 
 
@@ -110,19 +138,26 @@ def get_time(period):
 # Function to add the daily events to the scheduler
 def add_events():
    sunrise = get_time('sunrise')
+   sunset = get_time('sunset')
    dusk = get_time('dusk')
    tunnel_open_time = sunrise + datetime.timedelta(minutes=30)
+   needed_coop_light = datetime.timedelta(minutes=int(870 - ((sunset - sunrise) / datetime.timedelta(minutes=1))))
    scheduler.add_job(coop_open.door_run, 'date', run_date=sunrise, name='Coop Open')
    scheduler.add_job(tunnel_open.door_run, 'date', run_date=tunnel_open_time, name='Tunnel Open')
    scheduler.add_job(coop_close.door_run, 'date', run_date=dusk, name='Coop Close')
    scheduler.add_job(tunnel_close.door_run, 'date', run_date=dusk, name='Tunnel Close')
+   if needed_coop_light > datetime.timedelta(seconds=300):
+       coop_light_on_time = sunrise - needed_coop_light
+       coop_light_off_time = sunrise
+       scheduler.add_job(coop_light_on.onoff_run, 'date', run_date=coop_light_on_time, name='Coop Light On')
+       scheduler.add_job(coop_light_off.onoff_run, 'date', run_date=coop_light_off_time, name='Coop Light Off')
    log_events('add_events')
 
 if __name__ == '__main__':
     #call add_events to schedule once at boot
     add_events()
-    #schedule repeating job to schedule events at 00:10
-    scheduler.add_job(add_events, 'interval', hours=24, start_date='2021-09-26 00:10:00')
+    #schedule repeating job to schedule events at 00:10/01:10 dst/std 
+    scheduler.add_job(add_events, 'interval', hours=24, start_date='2021-09-26 01:10:00')
     log_events('Startup Check')
     while True:
         time.sleep(86400)
